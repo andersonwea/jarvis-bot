@@ -4,16 +4,24 @@ import FormData from 'form-data'
 import axios from 'axios'
 import 'dotenv/config'
 
-function record(seconds: number) {
-  const file = fs.createWriteStream('audio.wav', { encoding: 'binary'})
+function recordAudio(filename: string) {
+  return new Promise<void>((resolve, reject) => {
+    const file = fs.createWriteStream(filename)
+  
+    const recording = recorder.record()
+    recording.stream().pipe(file)
+      .on('error', (err: string) => {
+        reject(err)
+    })
 
-  const recording = recorder.record()
-  recording.stream().pipe(file)
-  console.log('Ouvindo...')
-
-  setTimeout(() => {
-    recording.stop()
-  }, seconds * 1000)
+    console.log('Ouvindo... aperte Ctrl+C para parar')
+  
+    process.on('SIGINT', () => {
+      recording.stop()
+      console.log('Escutei')
+      resolve()
+    })
+  })
 }
 
 
@@ -32,10 +40,11 @@ async function transcribeAudio(filename: string) {
   })
   const text = transcript.data.text
   console.log(text)
-
-
-
-
 }
 
-transcribeAudio('audio.wav')
+
+async function main() {
+  await recordAudio('audio.wav')
+}
+
+main()
